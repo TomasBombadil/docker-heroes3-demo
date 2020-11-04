@@ -1,43 +1,31 @@
 FROM ubuntu:14.04
-MAINTAINER Bogdan Mustiata <bogdan.mustiata@gmail.com>
 
-ENV UID=1000
-ENV GID=1000
+RUN apt-get update 
+RUN apt-get install -y curl gnupg wget git
+#ADD http://download.opensuse.org/repositories/home:/felfert/Debian_6.0/Release.key /Release.key
+#RUN cat /Release.key | apt-key add - && \
+#   echo "deb http://download.opensuse.org/repositories/home:/felfert/xUbuntu_12.04 ./" >> /etc/apt/sources.list.d/freerdp.list && \
+#    apt-get update && \
+#RUN echo 'deb http://download.opensuse.org/repositories/home:/felfert/xUbuntu_12.04/ /' | tee /etc/apt/sources.list.d/home:felfert.list
+#RUN curl -fsSL https://download.opensuse.org/repositories/home:felfert/xUbuntu_12.04/Release.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/home:felfert.gpg > /dev/null
 
-RUN apt-get update -y && apt-get upgrade -y
+WORKDIR /home
 
-RUN apt-get install -y vnc4server novnc websockify
+RUN git clone https://github.com/FreeRDP/FreeRDP-WebConnect
+WORKDIR /home/FreeRDP-WebConnect
+#RUN chmod 777 ./install_prereqs.sh && ./install_prereqs.sh
+RUN chmod 777 ./setup-all.sh && ./setup-all.sh -f -i -d
 
-RUN useradd -m raptor
+#RUN apt-get update
+#RUN apt-get install -y wsgate
+    
+RUN rm /etc/wsgate.ini && \
+    echo "[global]" >> /etc/wsgate.ini && \
+    echo "port = 80" >> /etc/wsgate.ini && \
+    echo "debug = true" >> /etc/wsgate.ini && \
+    echo "[http]" >> /etc/wsgate.ini && \
+    echo "documentroot = /usr/share/wsgate" >> /etc/wsgate.ini
 
-RUN dpkg --add-architecture i386 \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends \
-                wine \
-        && rm -rf /var/lib/apt/lists/*
+EXPOSE 80
 
-CMD perl -pi -e "s/raptor:x:1000:1000/raptor:x:$UID:$GID/" /etc/passwd && \
-    perl -pi -e "s/raptor:x:1000:/raptor:x:$GID:/" /etc/group
-
-# here the installation of Heroes 3 Demo was done manually,
-# using wine h3demo.exe, and just clicking install, without installing
-# .NET or the Gecko browser for wine.
-
-# also the data/wine_folder/drive_c/users/Public/Start\ Menu/Programs/3DO/
-# was removed, since there seems to be a Docker bug with filenames that contain
-# non ISO characters.
-
-ADD data/wine_folder /home/raptor/.wine
-EXPOSE 8081
-
-RUN cp -R /usr/share/novnc /home/raptor/novnc
-ADD bin/index.html /home/raptor/novnc/
-ADD bin/xstartup /home/raptor/.vnc/xstartup
-ADD bin/start-h3.sh /home/raptor/bin/start-h3.sh
-
-RUN chown -R raptor:raptor /home/raptor/
-
-USER raptor
-
-CMD /home/raptor/bin/start-h3.sh
-
+CMD wsgate --foreground

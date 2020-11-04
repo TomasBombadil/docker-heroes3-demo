@@ -18,14 +18,18 @@ docker run \
     --rm \
     -p 8081:8081 \
     bmst/h3demo
+
+docker build . -t heroes3 ; docker run -p 3000:3000 heroes3
 ```
 
 Open a browser, point it at http://localhost:8081/
 
-Enjoy!
+### Useful 
 
-Why
----
+```powershell
+# Add ignored file types to .gitignore
+get-childitem .\Heroes3Demo\ -File -Recurse | % { "*$($_.Extension.tolower())" } | unique | Out-File -Append -Encoding utf8 -PSPath .gitignore 
 
-I am trying to make a point, on what it you can do with application
-deployments on Docker.
+## Add tracked files to LFS
+get-childitem .\Heroes3Demo\ -File -Recurse | % { "*$($_.Extension.tolower()) filter=lfs diff=lfs merge=lfs -text" } | unique | Out-File -Append -Encoding utf8 -PSPath .gitattributes
+```
